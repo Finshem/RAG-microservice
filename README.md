@@ -6,8 +6,7 @@
 
 ```bash
 git clone https://github.com/Finshem/RAG-microservice.git
-cd rag_microservice
-
+cd RAG-microservice
 cp .env.example .env       
 docker compose up --build  
 ```
