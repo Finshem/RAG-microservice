@@ -63,27 +63,21 @@ http://localhost:8000/docs
 
 1. Клонировать репозиторий:
    ```bash
-   git clone https://github.com/your-username/rag_microservice.git
+   git clone https://github.com/Finshem/RAG-microservice.git
    cd rag_microservice
    ```
 
-2. Создать виртуальное окружение и активировать его:
+2. Скопировать переменные окружения:
    ```bash
-   python -m venv venv
-   source venv/bin/activate
+   cp .env.example .env
    ```
 
-3. Установить зависимости:
+3. Собрать и запустить контейнер:
    ```bash
-   pip install -r requirements.txt
+   docker compose up --build
    ```
 
-4. Запустить сервер:
-   ```bash
-   uvicorn main:app --reload
-   ```
-
-5. Swagger UI будет доступен по адресу:
+4. Swagger UI будет доступен по адресу:
    ```
    http://127.0.0.1:8000/docs
    ```
