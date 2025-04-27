@@ -10,20 +10,20 @@ from app.services.tabular_index import TabularIndex
 
 router = APIRouter()
 
-# In-memory indexes
-text_index = TextVectorIndex()
-tabular_index = TabularIndex()
-
 @router.post("/search_data/")
 async def search_data(
     files: List[UploadFile] = File(...),
     query: str = Form(...)
 ):
+    # 0) fresh, empty indexes for each request
+    text_index = TextVectorIndex()
+    tabular_index = TabularIndex()
+
     try:
         all_text_chunks = []
         all_text_sources = []
 
-        # 1) Read and parse each file
+        # 1) Read & parse each file
         for file in files:
             contents = await file.read()
             if len(contents) > 100 * 1024 * 1024:
@@ -37,51 +37,51 @@ async def search_data(
             if filetype == "text":
                 all_text_chunks.extend(chunks)
                 all_text_sources.extend([file.filename] * len(chunks))
-
             elif filetype == "table":
                 tabular_index.add_table(file.filename, chunks)
 
         # 2) Dense (FAISS) text search
         text_results = []
         if all_text_chunks:
-            doc_embeddings = embed_texts(all_text_chunks)
+            embeddings = embed_texts(all_text_chunks)
             text_index.add_documents(
-                embeddings=doc_embeddings,
+                embeddings=embeddings,
                 chunks=all_text_chunks,
                 sources=all_text_sources
             )
-            query_vector = embed_query(query)
-            text_results = text_index.search(query_vector)
+            query_vec = embed_query(query)
+            text_results = text_index.search(query_vec)
 
         # 3) Sparse (tabular) search
         table_results = tabular_index.search(query)
 
-        # 4) Merge and sort by the original FAISS score
+        # 4) Merge & sort by the original 'score'
         combined = text_results + table_results
         combined.sort(key=lambda x: x.get("score", 0), reverse=True)
 
-        # 5) Remap each entry to the new schema, pulling sparse scores for tables
+        # 5) Remap to unified schema with separate scores
         unified = []
         for item in combined:
-            base = {
-                "chunk":  item.get("chunk"),
-                "type":   item.get("type"),
-                "source": item.get("source"),
-            }
-            score = float(item.get("score", 0))
+            s = float(item.get("score", 0))
             if item.get("type") == "text":
-                # dense = FAISS, sparse = none
-                base["cosine_distance"] = score
-                base["semantic_metric"] = 0.0
+                unified.append({
+                    "chunk": item.get("chunk"),
+                    "type": "text",
+                    "source": item.get("source"),
+                    "cosine_distance": s,
+                    "semantic_metric": 0.0,
+                })
             else:
-                # table entries: treat 'score' as sparse metric
-                base["cosine_distance"] = 0.0
-                base["semantic_metric"] = score
-
-            unified.append(base)
+                unified.append({
+                    "chunk": item.get("chunk"),
+                    "type": "table",
+                    "source": item.get("source"),
+                    "cosine_distance": 0.0,
+                    "semantic_metric": s,
+                })
 
         return JSONResponse(content=unified)
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error in /search_data/")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
