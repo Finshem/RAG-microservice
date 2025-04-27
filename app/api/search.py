@@ -60,16 +60,25 @@ async def search_data(
         combined = text_results + table_results
         combined.sort(key=lambda x: x.get("score", 0), reverse=True)
 
-        # 5) Remap each entry to the new schema
+        # 5) Remap each entry to the new schema, pulling sparse scores for tables
         unified = []
         for item in combined:
-            unified.append({
-                "chunk":            item.get("chunk"),
-                "cosine_distance":  float(item.get("score", 0)),
-                "semantic_metric":  0.0,                    # will fill in Step 2
-                "type":             item.get("type"),
-                "source":           item.get("source"),
-            })
+            base = {
+                "chunk":  item.get("chunk"),
+                "type":   item.get("type"),
+                "source": item.get("source"),
+            }
+            score = float(item.get("score", 0))
+            if item.get("type") == "text":
+                # dense = FAISS, sparse = none
+                base["cosine_distance"] = score
+                base["semantic_metric"] = 0.0
+            else:
+                # table entries: treat 'score' as sparse metric
+                base["cosine_distance"] = 0.0
+                base["semantic_metric"] = score
+
+            unified.append(base)
 
         return JSONResponse(content=unified)
 
