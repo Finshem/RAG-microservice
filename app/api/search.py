@@ -1,3 +1,4 @@
+from app.utils.file_types import ALL_MIMES
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import List
@@ -25,7 +26,15 @@ async def search_data(
 
         # 1) Read & parse each file
         for file in files:
+            # Validate MIME type
+            if file.content_type not in ALL_MIMES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{file.filename}: unsupported media type {file.content_type}"
+                )
+            # Read contents
             contents = await file.read()
+            # Validate file size
             if len(contents) > 100 * 1024 * 1024:
                 raise HTTPException(
                     status_code=400,
