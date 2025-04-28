@@ -1,21 +1,29 @@
 from app.services.file_parser import parse_file
-from app.services.embedder import embed_texts
+from app.services.embedder import embed_texts, embed_query
 from app.services.vector_store import search_similar_chunks
+from fastapi import HTTPException
 
-async def rag_process(file, query: str, chunk_size: int = 500):
-    # 1. Extract raw text
-    full_text = parse_file(file)
+async def rag_process(
+    file,                   # UploadFile
+    query: str,
+    chunk_size: int = 500
+):
+    # 0) Read file bytes
+    contents = await file.read()
 
-    # 2. Split into chunks
-    chunks = [
-        full_text[i : i + chunk_size]
-        for i in range(0, len(full_text), chunk_size)
-    ]
+    # 1) Parse file into type and text chunks
+    filetype, chunks = parse_file(file.filename, contents)
+    if filetype != "text":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type for chat: {file.filename}"
+        )
 
-    # 3. Embed your chunks & query (embed_texts is synchronous)
+    # 2) Embed chunks and query
     chunk_embeddings = embed_texts(chunks)
-    query_embedding  = embed_texts([query])[0]
+    # embed_query returns a single vector
+    query_embedding = embed_query(query)
 
-    # 4. Pair up and run similarity search
+    # 3) Run similarity search
     corpus = list(zip(chunks, chunk_embeddings))
     return search_similar_chunks(query_embedding, corpus)
