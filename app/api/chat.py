@@ -42,6 +42,8 @@ async def chat_llm(
     except HTTPException:
         # Propagate HTTP errors
         raise
-    except Exception as e:
+    except HTTPException:
+        raise
+    except Exception:
         logger.exception("Chat error")
         raise HTTPException(status_code=500, detail="Internal server error")

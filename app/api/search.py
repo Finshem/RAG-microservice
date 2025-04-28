@@ -91,6 +91,9 @@ async def search_data(
 
         return JSONResponse(content=unified)
 
+    except HTTPException:
+        # Let FastAPI handle our own 400s/404s/etc
+        raise
     except Exception:
         logger.exception("Error in /search_data/")
         raise HTTPException(status_code=500, detail="Internal server error")
