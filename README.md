@@ -133,44 +133,48 @@ MAX_TOKENS=512
 
 ---
 
-## 🧪 Примеры CURL-запросов
+> **Примечание:** в корне репозитория есть папка `rag_samples` с тестовыми файлами:
+> ```bash
+> ls rag_samples
+> example.txt example.csv example.html example.pdf example.xlsx test_search.sh test_chat.sh
+> ```
+> Для удобства перейдите в неё перед тестированием:
+> ```bash
+> cd rag_samples
+> ```
 
-1️⃣ **Однофайловый поиск**
+### 🧪 Примеры CURL-запросов
 
 ```bash
+# Текстовый поиск в одном файле
 curl -s -X POST http://localhost:8000/api/search_data/ \
-  -F "files=@example.txt" \
-  -F "query=Retrieval-Augmented Generation" | jq .
-```
+  -F "files=@example.txt;type=text/plain" \
+  -F "query=Retrieval-Augmented Generation" \
+  | jq .
 
-2️⃣ **Двухфайловый поиск**
-
-```bash
+# Гибридный поиск: текст + CSV
 curl -s -X POST http://localhost:8000/api/search_data/ \
-  -F "files=@example.txt" \
-  -F "files=@example.csv" \
-  -F "query=vector search" | jq .
-```
+  -F "files=@example.txt;type=text/plain" \
+  -F "files=@example.csv;type=text/csv" \
+  -F "query=vector search" \
+  | jq .
 
-3️⃣ **Пятифайловый поиск**
-
-```bash
+# Стресс-тест: 5 файлов разных форматов
 curl -s -X POST http://localhost:8000/api/search_data/ \
-  -F "files=@example.txt" \
-  -F "files=@example.html" \
-  -F "files=@example.csv" \
-  -F "files=@example.xlsx" \
-  -F "files=@example.pdf" \
-  -F "query=hybrid search" | jq .
-```
+  -F "files=@example.txt;type=text/plain" \
+  -F "files=@example.html;type=text/html" \
+  -F "files=@example.csv;type=text/csv" \
+  -F "files=@example.xlsx;type=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" \
+  -F "files=@example.pdf;type=application/pdf" \
+  -F "query=hybrid search" \
+  | jq .
 
-4️⃣ **Chat-LLM**
-
-```bash
+# Тест эндпоинта chat_llm
 curl -s -X POST http://localhost:8000/api/chat_llm \
-  -F "file=@example.txt" \
+  -F "file=@example.txt;type=text/plain" \
   -F "query=Explain RAG" \
-  -F "prompt=Answer as an ML expert." | jq .
+  -F "prompt=Answer as an ML expert." \
+  | jq .
 ```
 
 ---
